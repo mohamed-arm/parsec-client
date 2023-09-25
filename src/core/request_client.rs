@@ -33,13 +33,26 @@ impl RequestClient {
     /// Creates a new `RequestClient`, bootstrapping the socket
     /// location.
     pub fn new() -> Result<Self> {
-        Ok(RequestClient {
-            ipc_handler: ipc_handler::connector_from_url(url::Url::parse(
-                &env::var("PARSEC_SERVICE_ENDPOINT")
-                    .unwrap_or(format!("unix:{}", unix_socket::DEFAULT_SOCKET_PATH)),
-            )?)?,
-            max_body_size: DEFAULT_MAX_BODY_SIZE,
-        })
+        let conn_type = env::var("PARSEC_SERVICE_CONN_TYPE").unwrap();
+        let conn_ip_addr = env::var("PARSEC_SERVICE_CONN_IP_ADDR").unwrap();
+        let conn_port_no_str = env::var("PARSEC_SERVICE_CONN_PORT_NO").unwrap();
+        let conn_port_no_val: u16 = conn_port_no_str.parse().unwrap();
+
+        let req_client = match conn_type.as_str() {
+            "unix" => RequestClient {
+                ipc_handler: ipc_handler::connector_from_url(url::Url::parse(
+                    &env::var("PARSEC_SERVICE_ENDPOINT")
+                        .unwrap_or(format!("unix:{}", unix_socket::DEFAULT_SOCKET_PATH)),
+                )?)?,
+                max_body_size: DEFAULT_MAX_BODY_SIZE,
+            },
+            "tcp" => RequestClient {
+                ipc_handler: ipc_handler::connector_from_ipaddress(conn_ip_addr, conn_port_no_val)?,
+                max_body_size: DEFAULT_MAX_BODY_SIZE,
+            },
+            _ => RequestClient::default(),
+        };
+        Ok(req_client)
     }
 
     /// Send a request and get a response.

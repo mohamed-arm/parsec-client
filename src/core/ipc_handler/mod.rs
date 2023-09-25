@@ -6,6 +6,7 @@ use std::io::{Read, Write};
 use std::time::Duration;
 use url::Url;
 
+pub mod tcp_socket;
 pub mod unix_socket;
 
 /// Default timeout for client IPC requests.
@@ -37,4 +38,16 @@ pub fn connector_from_url(socket_url: Url) -> Result<Box<dyn Connect + Send + Sy
         )?)),
         _ => Err(Error::Client(ClientErrorKind::InvalidSocketUrl)),
     }
+}
+
+/// Create an implementation of `Connect` from the IP address
+pub fn connector_from_ipaddress(
+    ip_addr: String,
+    port_no: u16,
+) -> Result<Box<dyn Connect + Send + Sync>> {
+    Ok(Box::from(tcp_socket::TcpHandler::new(
+        ip_addr,
+        port_no,
+        Some(DEFAULT_TIMEOUT),
+    )?))
 }
